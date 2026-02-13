@@ -7,7 +7,7 @@ type CategoryNavProps = {
 };
 
 export function CategoryNav({ selectedCategory, onCategoryChange }: CategoryNavProps) {
-  const { categories } = useCategories();
+  const { categories, isLoading, error } = useCategories();
   const displayCategories = useMemo(
     () => ['Semua', ...categories.filter((category) => category !== 'Semua')],
     [categories]
@@ -16,6 +16,12 @@ export function CategoryNav({ selectedCategory, onCategoryChange }: CategoryNavP
   return (
     <div className="bg-white rounded-lg shadow-sm p-3 sm:p-4 mb-4 sm:mb-6">
       <h3 className="text-gray-700 mb-2 sm:mb-3 text-sm sm:text-base">Kategori Produk</h3>
+      {isLoading && (
+        <p className="mb-2 text-xs text-gray-500">Memuat kategori dari Firebase...</p>
+      )}
+      {!isLoading && error && (
+        <p className="mb-2 text-xs text-red-600">Kategori gagal dimuat: {error}</p>
+      )}
       {/* Desktop: flex-wrap, Mobile: horizontal scroll */}
       <div className="hidden sm:flex flex-wrap gap-2">
         {displayCategories.map((category) => (

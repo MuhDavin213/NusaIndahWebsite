@@ -1,8 +1,5 @@
 import { useEffect, useState } from 'react';
-import { useLocalStorage } from './useLocalStorage';
-import { subscribeKategori, saveKategori, deleteKategori } from '../database/kategori';
-
-const CATEGORIES_KEY = 'toko_nusa_indah_categories';
+import { deleteKategori, saveKategori, subscribeKategori } from '../database/kategori';
 
 const DEFAULT_CATEGORIES = [
   'Makanan & Minuman',
@@ -14,22 +11,26 @@ const DEFAULT_CATEGORIES = [
 ];
 
 export function useCategories() {
-  const [localCategories, setLocalCategories] = useLocalStorage<string[]>(
-    CATEGORIES_KEY,
-    DEFAULT_CATEGORIES
-  );
-  const [categories, setCategories] = useState<string[]>(localCategories);
-  const [useFirebase, setUseFirebase] = useState(false);
+  const [categories, setCategories] = useState<string[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    const unsubscribe = subscribeKategori((kategori) => {
-      setCategories(kategori);
-      setUseFirebase(true);
-    });
+    const unsubscribe = subscribeKategori(
+      (kategori) => {
+        setCategories(kategori);
+        setIsLoading(false);
+        setError(null);
+      },
+      (errorMessage) => {
+        setIsLoading(false);
+        setError(errorMessage);
+      }
+    );
 
     if (!unsubscribe) {
-      setUseFirebase(false);
-      setCategories(localCategories);
+      setIsLoading(false);
+      setError('Koneksi Firebase kategori gagal. Periksa konfigurasi dan rules Firestore.');
     }
 
     return () => {
@@ -37,70 +38,60 @@ export function useCategories() {
     };
   }, []);
 
-  useEffect(() => {
-    if (!useFirebase) {
-      setCategories(localCategories);
-    }
-  }, [localCategories, useFirebase]);
-
-  const addCategory = (newCategory: string) => {
+  const addCategory = async (newCategory: string) => {
     const trimmed = newCategory.trim();
     if (!trimmed || categories.includes(trimmed)) {
       return false;
     }
 
-    if (useFirebase) {
-      setCategories([...categories, trimmed]);
-      void saveKategori(trimmed).catch((error) => {
-        console.error('Gagal menyimpan kategori ke Firebase:', error?.message || error);
-      });
-    } else {
-      setLocalCategories([...localCategories, trimmed]);
+    setCategories((prev) => [...prev, trimmed]);
+    try {
+      await saveKategori(trimmed);
+      return true;
+    } catch (saveError: any) {
+      setCategories((prev) => prev.filter((c) => c !== trimmed));
+      setError(saveError?.message || 'Gagal menyimpan kategori di Firebase.');
+      return false;
     }
-
-    return true;
   };
 
-  const removeCategory = (category: string) => {
+  const removeCategory = async (category: string) => {
     if (DEFAULT_CATEGORIES.includes(category)) {
-      return false; // Tidak boleh hapus kategori default
+      return false;
     }
 
-    if (useFirebase) {
-      setCategories(categories.filter((c) => c !== category));
-      void deleteKategori(category).catch((error) => {
-        console.error('Gagal menghapus kategori di Firebase:', error?.message || error);
-      });
-    } else {
-      setLocalCategories(localCategories.filter((c) => c !== category));
+    const previous = categories;
+    setCategories((prev) => prev.filter((c) => c !== category));
+    try {
+      await deleteKategori(category);
+      return true;
+    } catch (deleteError: any) {
+      setCategories(previous);
+      setError(deleteError?.message || 'Gagal menghapus kategori di Firebase.');
+      return false;
     }
-
-    return true;
   };
 
-  const resetCategories = () => {
-    if (useFirebase) {
-      const toDelete = categories.filter((c) => !DEFAULT_CATEGORIES.includes(c));
-      toDelete.forEach((c) => {
-        void deleteKategori(c).catch((error) => {
-          console.error('Gagal menghapus kategori di Firebase:', error?.message || error);
-        });
-      });
+  const resetCategories = async () => {
+    const toDelete = categories.filter((c) => !DEFAULT_CATEGORIES.includes(c));
 
-      DEFAULT_CATEGORIES.forEach((c) => {
-        void saveKategori(c).catch((error) => {
-          console.error('Gagal menyimpan kategori default ke Firebase:', error?.message || error);
-        });
-      });
-
+    try {
+      await Promise.all(toDelete.map((c) => deleteKategori(c)));
+      await Promise.all(DEFAULT_CATEGORIES.map((c) => saveKategori(c)));
       setCategories(DEFAULT_CATEGORIES);
-    } else {
-      setLocalCategories(DEFAULT_CATEGORIES);
+      setError(null);
+    } catch (resetError: any) {
+      setError(resetError?.message || 'Gagal reset kategori default di Firebase.');
     }
   };
+
+  const clearError = () => setError(null);
 
   return {
     categories,
+    isLoading,
+    error,
+    clearError,
     addCategory,
     removeCategory,
     resetCategories,

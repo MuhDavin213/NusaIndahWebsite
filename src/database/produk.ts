@@ -1,11 +1,18 @@
-// FILE: database/produk.ts
-// FUNGSI HELPER UNTUK UPDATE STOK PRODUK DI FIREBASE
-
-import { collection, getDocs, onSnapshot, doc, setDoc, deleteDoc, updateDoc, increment, query, orderBy } from 'firebase/firestore';
+import {
+  collection,
+  deleteDoc,
+  doc,
+  getDocs,
+  increment,
+  onSnapshot,
+  orderBy,
+  query,
+  setDoc,
+  updateDoc
+} from 'firebase/firestore';
 import { getDb } from './firebase';
 import type { Barang } from '../types';
 
-// Nama koleksi produk di Firestore
 const PRODUK_COLLECTION = 'produk';
 
 function normalizeProduk(id: string, data: Partial<Barang>): Barang {
@@ -23,33 +30,45 @@ function normalizeProduk(id: string, data: Partial<Barang>): Barang {
 
 export async function getProduk(): Promise<Barang[]> {
   const db = getDb();
-  const produkQuery = query(collection(db, PRODUK_COLLECTION), orderBy('id_barang', 'asc'));
+  const produkQuery = query(
+    collection(db, PRODUK_COLLECTION),
+    orderBy('id_barang', 'asc')
+  );
   const snapshot = await getDocs(produkQuery);
-  const items = snapshot.docs.map((docSnap) => normalizeProduk(docSnap.id, docSnap.data() as Partial<Barang>));
-  return items;
+  return snapshot.docs.map((docSnap) =>
+    normalizeProduk(docSnap.id, docSnap.data() as Partial<Barang>)
+  );
 }
 
-export function subscribeProduk(callback: (produk: Barang[]) => void): (() => void) | null {
+export function subscribeProduk(
+  callback: (produk: Barang[]) => void,
+  onError?: (errorMessage: string) => void
+): (() => void) | null {
   try {
     const db = getDb();
-    const produkQuery = query(collection(db, PRODUK_COLLECTION), orderBy('id_barang', 'asc'));
+    const produkQuery = query(
+      collection(db, PRODUK_COLLECTION),
+      orderBy('id_barang', 'asc')
+    );
 
     return onSnapshot(
       produkQuery,
       (snapshot) => {
-        const items = snapshot.docs.map((docSnap) => normalizeProduk(docSnap.id, docSnap.data() as Partial<Barang>));
+        const items = snapshot.docs.map((docSnap) =>
+          normalizeProduk(docSnap.id, docSnap.data() as Partial<Barang>)
+        );
         callback(items);
       },
       (error) => {
-        console.info('ℹ️ Firebase produk feature disabled:', error.message);
+        const errorMessage = error?.message || 'Gagal membaca data produk dari Firebase.';
+        console.info('Firebase produk error:', errorMessage);
+        if (onError) onError(errorMessage);
       }
     );
   } catch (error: any) {
-    if (error.message?.includes('Firebase not configured')) {
-      console.info('ℹ️ Firebase produk feature disabled: Firebase not configured yet');
-    } else {
-      console.info('ℹ️ Firebase produk feature disabled:', error.message);
-    }
+    const errorMessage = error?.message || 'Firebase belum dikonfigurasi untuk produk.';
+    console.info('Firebase produk error:', errorMessage);
+    if (onError) onError(errorMessage);
     return null;
   }
 }
@@ -66,20 +85,10 @@ export async function deleteProduk(productId: number): Promise<void> {
   await deleteDoc(produkRef);
 }
 
-/**
- * FUNGSI: kurangiStokProduk
- * Kurangi stok produk di Firestore
- * PENTING: Fungsi ini harus dipanggil dalam Firestore transaction untuk atomic update
- * 
- * @param productId - ID produk
- * @param qty - jumlah yang akan dikurangi
- */
 export async function kurangiStokProduk(productId: number, qty: number): Promise<void> {
   try {
     const db = getDb();
     const produkRef = doc(db, PRODUK_COLLECTION, productId.toString());
-    
-    // Gunakan increment dengan nilai negatif untuk kurangi stok
     await updateDoc(produkRef, {
       stok: increment(-qty)
     });

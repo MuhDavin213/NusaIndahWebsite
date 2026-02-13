@@ -3,15 +3,15 @@
 Dokumen ini menjelaskan data apa yang berubah, di mana disimpan, dan kapan terjadi perubahan.
 
 ## 1. Produk
-Sumber: Firestore `produk` (utama), localStorage (fallback)
+Sumber: Firestore `produk` (Firebase-only)
 File terkait:
 `src/hooks/useProducts.ts`
 `src/database/produk.ts`
 
 Perubahan data:
-Tambah produk -> tambah doc di Firestore atau localStorage
-Edit produk -> update doc di Firestore atau localStorage
-Hapus produk -> delete doc di Firestore atau localStorage
+Tambah produk -> tambah doc di Firestore
+Edit produk -> update doc di Firestore
+Hapus produk -> delete doc di Firestore
 
 ## 2. Keranjang
 Sumber: Memory (reset saat reload)

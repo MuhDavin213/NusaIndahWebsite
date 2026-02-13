@@ -1,28 +1,29 @@
 import { useEffect, useState } from 'react';
-import { useLocalStorage } from './useLocalStorage';
-import { initialProducts } from '../data/products';
-import { STORAGE_KEYS } from '../utils/constants';
 import type { Barang } from '../types';
 import { normalizeCategory } from '../utils/categoryHelper';
-import { subscribeProduk, saveProduk, deleteProduk } from '../database/produk';
+import { deleteProduk, saveProduk, subscribeProduk } from '../database/produk';
 
 export function useProducts() {
-  const [localProducts, setLocalProducts] = useLocalStorage<Barang[]>(
-    STORAGE_KEYS.PRODUCTS,
-    initialProducts
-  );
-  const [products, setProducts] = useState<Barang[]>(localProducts);
-  const [useFirebase, setUseFirebase] = useState(false);
+  const [products, setProducts] = useState<Barang[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    const unsubscribe = subscribeProduk((produk) => {
-      setProducts(produk);
-      setUseFirebase(true);
-    });
+    const unsubscribe = subscribeProduk(
+      (produk) => {
+        setProducts(produk);
+        setIsLoading(false);
+        setError(null);
+      },
+      (errorMessage) => {
+        setIsLoading(false);
+        setError(errorMessage);
+      }
+    );
 
     if (!unsubscribe) {
-      setUseFirebase(false);
-      setProducts(localProducts);
+      setIsLoading(false);
+      setError('Koneksi Firebase produk gagal. Periksa konfigurasi dan rules Firestore.');
     }
 
     return () => {
@@ -30,71 +31,64 @@ export function useProducts() {
     };
   }, []);
 
-  useEffect(() => {
-    if (!useFirebase) {
-      setProducts(localProducts);
-    }
-  }, [localProducts, useFirebase]);
-
-  const addProduct = (product: Omit<Barang, 'id_barang'>) => {
-    const newId = products.length > 0 
-      ? Math.max(...products.map(p => p.id_barang)) + 1 
-      : 1;
-    
+  const addProduct = async (product: Omit<Barang, 'id_barang'>) => {
+    const newId =
+      products.length > 0 ? Math.max(...products.map((p) => p.id_barang)) + 1 : 1;
     const newProduct: Barang = {
       ...product,
       id_barang: newId
     };
 
-    if (useFirebase) {
-      // Optimistic update
-      setProducts([...products, newProduct]);
-      void saveProduk(newProduct).catch((error) => {
-        console.error('Gagal menyimpan produk ke Firebase:', error?.message || error);
-      });
-    } else {
-      setLocalProducts([...localProducts, newProduct]);
+    setProducts((prev) => [...prev, newProduct]);
+    try {
+      await saveProduk(newProduct);
+    } catch (saveError: any) {
+      setProducts((prev) => prev.filter((p) => p.id_barang !== newId));
+      setError(saveError?.message || 'Gagal menyimpan produk ke Firebase.');
     }
   };
 
-  const updateProduct = (product: Barang) => {
-    if (useFirebase) {
-      setProducts(products.map(p => 
-        p.id_barang === product.id_barang ? product : p
-      ));
-      void saveProduk(product).catch((error) => {
-        console.error('Gagal update produk di Firebase:', error?.message || error);
-      });
-    } else {
-      setLocalProducts(localProducts.map(p => 
-        p.id_barang === product.id_barang ? product : p
-      ));
+  const updateProduct = async (product: Barang) => {
+    const previous = products;
+    setProducts((prev) =>
+      prev.map((p) => (p.id_barang === product.id_barang ? product : p))
+    );
+    try {
+      await saveProduk(product);
+    } catch (saveError: any) {
+      setProducts(previous);
+      setError(saveError?.message || 'Gagal update produk di Firebase.');
     }
   };
 
-  const deleteProduct = (id_barang: number) => {
-    if (useFirebase) {
-      setProducts(products.filter(p => p.id_barang !== id_barang));
-      void deleteProduk(id_barang).catch((error) => {
-        console.error('Gagal hapus produk di Firebase:', error?.message || error);
-      });
-    } else {
-      setLocalProducts(localProducts.filter(p => p.id_barang !== id_barang));
+  const deleteProduct = async (id_barang: number) => {
+    const previous = products;
+    setProducts((prev) => prev.filter((p) => p.id_barang !== id_barang));
+    try {
+      await deleteProduk(id_barang);
+    } catch (deleteError: any) {
+      setProducts(previous);
+      setError(deleteError?.message || 'Gagal hapus produk di Firebase.');
     }
   };
 
   const getProductById = (id_barang: number) => {
-    return products.find(p => p.id_barang === id_barang);
+    return products.find((p) => p.id_barang === id_barang);
   };
 
   const getProductsByCategory = (category: string) => {
     if (category === 'Semua') return products;
     const normalized = normalizeCategory(category);
-    return products.filter(p => normalizeCategory(p.kategori) === normalized);
+    return products.filter((p) => normalizeCategory(p.kategori) === normalized);
   };
+
+  const clearError = () => setError(null);
 
   return {
     products,
+    isLoading,
+    error,
+    clearError,
     addProduct,
     updateProduct,
     deleteProduct,

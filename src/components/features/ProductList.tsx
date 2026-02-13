@@ -7,6 +7,8 @@ import type { Barang } from '../../types';
 
 type ProductListProps = {
   products: Barang[];
+  isProductsLoading: boolean;
+  productsError: string | null;
   selectedCategory: string;
   onCategoryChange: (category: string) => void;
   onAddToCart: (product: Barang, quantity: number) => void;
@@ -14,6 +16,8 @@ type ProductListProps = {
 
 export function ProductList({ 
   products, 
+  isProductsLoading,
+  productsError,
   selectedCategory, 
   onCategoryChange, 
   onAddToCart 
@@ -86,8 +90,20 @@ export function ProductList({
           Ditemukan {filteredProducts.length} produk
         </p>
       )}
+
+      {isProductsLoading && (
+        <div className="text-center py-10 text-gray-600">
+          Memuat produk dari Firebase...
+        </div>
+      )}
+
+      {!isProductsLoading && productsError && (
+        <div className="mb-4 rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-700">
+          Gagal memuat produk: {productsError}
+        </div>
+      )}
       
-      {filteredProducts.length === 0 ? (
+      {!isProductsLoading && filteredProducts.length === 0 ? (
         <div className="text-center py-12 sm:py-16">
           <Package className="w-12 h-12 sm:w-16 sm:h-16 text-gray-300 mx-auto mb-3 sm:mb-4" />
           <p className="text-gray-900 mb-1">Produk tidak ditemukan</p>
@@ -98,7 +114,7 @@ export function ProductList({
             }
           </p>
         </div>
-      ) : (
+      ) : !isProductsLoading ? (
         <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-4 md:gap-6">
           {filteredProducts.map((product) => (
             <ProductCard
@@ -108,7 +124,8 @@ export function ProductList({
             />
           ))}
         </div>
-      )}
+      ) : null
+      }
     </div>
   );
 }

@@ -4,6 +4,8 @@ import type { Barang } from '../types';
 
 type BerandaProps = {
   products: Barang[];
+  isProductsLoading: boolean;
+  productsError: string | null;
   selectedCategory: string;
   onCategoryChange: (category: string) => void;
   onAddToCart: (product: Barang, quantity: number) => void;
@@ -11,6 +13,8 @@ type BerandaProps = {
 
 export function Beranda({ 
   products, 
+  isProductsLoading,
+  productsError,
   selectedCategory, 
   onCategoryChange, 
   onAddToCart 
@@ -21,6 +25,8 @@ export function Beranda({
       <div className="container mx-auto px-4 py-6 sm:py-8">
         <ProductList
           products={products}
+          isProductsLoading={isProductsLoading}
+          productsError={productsError}
           selectedCategory={selectedCategory}
           onCategoryChange={onCategoryChange}
           onAddToCart={onAddToCart}

@@ -33,10 +33,10 @@ File: `src/data/products.ts`, `src/data/imageGallery.ts`, `src/utils/imageHelper
 Fungsi: Menyediakan data produk default dan mapping gambar.
 Alur: `imageHelper.ts` mengubah key gambar menjadi URL (preset atau custom).
 
-4. State produk (localStorage dan Firebase)
-File: `src/hooks/useProducts.ts`, `src/hooks/useLocalStorage.ts`, `src/database/produk.ts`
-Fungsi: Menyimpan dan mengambil data produk.
-Alur: `useProducts` mencoba subscribe ke Firestore, jika gagal maka fallback ke localStorage.
+4. State produk (Firebase-only)
+File: `src/hooks/useProducts.ts`, `src/database/produk.ts`
+Fungsi: Menyimpan dan mengambil data produk dari Firestore.
+Alur: `useProducts` subscribe Firestore, menampilkan loading saat fetch, dan menampilkan error jika koneksi gagal.
 
 5. Beranda (list produk, search, kategori, add to cart)
 File: `src/pages/Beranda.tsx`, `src/components/features/ProductList.tsx`, `src/components/features/ProductCard.tsx`, `src/components/layout/CategoryNav.tsx`, `src/hooks/useCategories.ts`, `src/database/kategori.ts`
@@ -86,16 +86,16 @@ Alur: banner promo diambil dari Firestore koleksi `promo_banner`, lalu ditampilk
 
 Kategori
 File: `src/hooks/useCategories.ts`, `src/database/kategori.ts`, `src/features/admin/CategoryManagement.tsx`, `src/components/layout/CategoryNav.tsx`
-Alur: aplikasi mencoba load kategori dari Firebase. Jika gagal, fallback ke localStorage. Kategori dipakai untuk filter di `ProductList`.
+Alur: kategori dibaca dari Firestore, menampilkan loading saat fetch, dan menampilkan error jika koneksi gagal. Kategori dipakai untuk filter di `ProductList`.
 
 Catatan update (bahasa mudah):
-Sekarang kategori utama diambil dari Firestore koleksi `kategori`.
-Kalau Firestore belum siap, aplikasi otomatis pakai data lokal (localStorage).
-Jadi halaman tetap jalan walau Firebase bermasalah.
+Sekarang kategori utama diambil langsung dari Firestore koleksi `kategori`.
+Tidak ada fallback data lokal untuk kategori.
+Jika Firebase bermasalah, aplikasi menampilkan pesan error agar masalah cepat terdeteksi.
 
 ## Sumber Data per Fitur
-Produk: Firestore `produk` (utama), localStorage (fallback)
-Kategori: Firestore `kategori` (utama), localStorage (fallback)
+Produk: Firestore `produk` (Firebase-only)
+Kategori: Firestore `kategori` (Firebase-only)
 Keranjang: memory (reset saat reload)
 Promo diskon: Firestore `konfigurasi/promo`
 Banner promo: Firestore `promo_banner`

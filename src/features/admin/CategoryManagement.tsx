@@ -4,27 +4,37 @@ import { useCategories } from '../../hooks/useCategories';
 import { toast } from 'sonner';
 
 export function CategoryManagement() {
-  const { categories, addCategory, removeCategory, isDefaultCategory } = useCategories();
+  const {
+    categories,
+    isLoading,
+    error,
+    clearError,
+    addCategory,
+    removeCategory,
+    isDefaultCategory
+  } = useCategories();
   const [isAdding, setIsAdding] = useState(false);
   const [newCategory, setNewCategory] = useState('');
 
-  const handleAddCategory = (e: React.FormEvent) => {
+  const handleAddCategory = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (addCategory(newCategory)) {
+    const success = await addCategory(newCategory);
+    if (success) {
       toast.success('Kategori berhasil ditambahkan!');
       setNewCategory('');
       setIsAdding(false);
     } else {
-      toast.error('Kategori sudah ada atau tidak valid!');
+      toast.error('Kategori gagal ditambahkan. Cek data atau koneksi Firebase.');
     }
   };
 
-  const handleRemoveCategory = (category: string) => {
+  const handleRemoveCategory = async (category: string) => {
     if (confirm(`Apakah Anda yakin ingin menghapus kategori "${category}"?`)) {
-      if (removeCategory(category)) {
+      const success = await removeCategory(category);
+      if (success) {
         toast.success('Kategori berhasil dihapus!');
       } else {
-        toast.error('Kategori default tidak bisa dihapus!');
+        toast.error('Kategori gagal dihapus atau termasuk kategori default.');
       }
     }
   };
@@ -56,6 +66,21 @@ export function CategoryManagement() {
             )}
           </button>
         </div>
+        {isLoading && (
+          <p className="mt-2 text-xs text-gray-500">Memuat kategori dari Firebase...</p>
+        )}
+        {!isLoading && error && (
+          <div className="mt-3 flex items-center justify-between rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-700">
+            <span>Gagal load kategori: {error}</span>
+            <button
+              onClick={clearError}
+              className="text-red-700 underline underline-offset-2"
+              type="button"
+            >
+              Tutup
+            </button>
+          </div>
+        )}
       </div>
 
       {/* Add Category Form */}

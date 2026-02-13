@@ -68,7 +68,8 @@ export async function getKategori(): Promise<string[]> {
 }
 
 export function subscribeKategori(
-  callback: (kategori: string[]) => void
+  callback: (kategori: string[]) => void,
+  onError?: (errorMessage: string) => void
 ): (() => void) | null {
   try {
     const db = getDb();
@@ -83,15 +84,15 @@ export function subscribeKategori(
         callback(sortKategori(items));
       },
       (error) => {
-        console.info('ℹ️ Firebase kategori feature disabled:', error.message);
+        const errorMessage = error?.message || 'Gagal membaca data kategori dari Firebase.';
+        console.info('Firebase kategori error:', errorMessage);
+        if (onError) onError(errorMessage);
       }
     );
   } catch (error: any) {
-    if (error.message?.includes('Firebase not configured')) {
-      console.info('ℹ️ Firebase kategori feature disabled: Firebase not configured yet');
-    } else {
-      console.info('ℹ️ Firebase kategori feature disabled:', error.message);
-    }
+    const errorMessage = error?.message || 'Firebase belum dikonfigurasi untuk kategori.';
+    console.info('Firebase kategori error:', errorMessage);
+    if (onError) onError(errorMessage);
     return null;
   }
 }

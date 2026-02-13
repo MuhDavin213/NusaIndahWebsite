@@ -10,6 +10,8 @@ import { CheckoutModal } from '../components/CheckoutModal';
 type CartPageProps = {
   cart: Keranjang;
   products: Barang[];
+  isProductsLoading?: boolean;
+  productsError?: string | null;
   onUpdateItem: (id_detail: number, quantity: number) => void;
   onRemoveItem: (id_detail: number) => void;
   onClearCart?: () => void; // Tambahan untuk clear cart setelah checkout
@@ -26,7 +28,15 @@ type StockCheckResult = {
   }[];
 };
 
-export function CartPage({ cart, products, onUpdateItem, onRemoveItem, onClearCart }: CartPageProps) {
+export function CartPage({
+  cart,
+  products,
+  isProductsLoading = false,
+  productsError = null,
+  onUpdateItem,
+  onRemoveItem,
+  onClearCart
+}: CartPageProps) {
   const [stockCheck, setStockCheck] = useState<StockCheckResult | null>(null);
   const [showStockModal, setShowStockModal] = useState(false);
   
@@ -106,6 +116,12 @@ export function CartPage({ cart, products, onUpdateItem, onRemoveItem, onClearCa
         <div className="mb-6 sm:mb-8">
           <h2 className="text-gray-900 mb-2">Keranjang Belanja</h2>
           <p className="text-gray-600 text-sm sm:text-base">{cart.items.length} item dalam keranjang</p>
+          {isProductsLoading && (
+            <p className="text-xs text-gray-500 mt-1">Memuat data produk dari Firebase...</p>
+          )}
+          {!isProductsLoading && productsError && (
+            <p className="text-xs text-red-600 mt-1">Data produk belum sinkron: {productsError}</p>
+          )}
         </div>
 
         <div className="grid lg:grid-cols-3 gap-4 sm:gap-6 lg:gap-8">

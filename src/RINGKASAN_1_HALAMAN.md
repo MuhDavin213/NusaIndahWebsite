@@ -23,7 +23,7 @@ Config: `.env`
 
 ## Alur Cepat Fitur
 1. Produk tampil
-`useProducts` -> Firestore (utama) -> fallback localStorage
+`useProducts` -> Firestore (Firebase-only) + loading/error state
 
 2. Add to cart
 `ProductCard` -> `useCart.addToCart` -> cart state memory

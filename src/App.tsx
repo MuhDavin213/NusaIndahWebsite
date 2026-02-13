@@ -17,7 +17,7 @@ export default function App() {
   const [currentPage, setCurrentPage] = useState<Page>('beranda');
   const [selectedCategory, setSelectedCategory] = useState('Semua');
   
-  const { products } = useProducts();
+  const { products, isLoading: isProductsLoading, error: productsError } = useProducts();
   const {
     cart,
     addToCart,
@@ -48,6 +48,8 @@ export default function App() {
         return (
           <Beranda
             products={products}
+            isProductsLoading={isProductsLoading}
+            productsError={productsError}
             selectedCategory={selectedCategory}
             onCategoryChange={setSelectedCategory}
             onAddToCart={handleAddToCart}
@@ -62,6 +64,8 @@ export default function App() {
           <CartPage
             cart={cart}
             products={products}
+            isProductsLoading={isProductsLoading}
+            productsError={productsError}
             onUpdateItem={updateCartItem}
             onRemoveItem={removeFromCart}
             onClearCart={clearCart}
@@ -78,6 +82,8 @@ export default function App() {
         return (
           <Beranda
             products={products}
+            isProductsLoading={isProductsLoading}
+            productsError={productsError}
             selectedCategory={selectedCategory}
             onCategoryChange={setSelectedCategory}
             onAddToCart={handleAddToCart}

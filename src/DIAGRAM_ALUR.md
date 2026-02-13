@@ -16,7 +16,7 @@ App mount
   -> useProducts()
     -> subscribeProduk() ke Firestore
       -> Jika sukses: products = Firestore
-      -> Jika gagal: products = localStorage (fallback)
+      -> Jika gagal: tampilkan error (tanpa fallback localStorage)
 ```
 
 ## 3. Alur Add to Cart

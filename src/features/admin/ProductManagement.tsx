@@ -10,8 +10,16 @@ import type { Barang } from '../../types';
 type FormData = Omit<Barang, 'id_barang'>;
 
 export function ProductManagement() {
-  const { products, addProduct, updateProduct, deleteProduct } = useProducts();
-  const { categories } = useCategories();
+  const {
+    products,
+    isLoading: isProductsLoading,
+    error: productsError,
+    clearError: clearProductsError,
+    addProduct,
+    updateProduct,
+    deleteProduct
+  } = useProducts();
+  const { categories, isLoading: isCategoriesLoading, error: categoriesError } = useCategories();
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingProduct, setEditingProduct] = useState<Barang | null>(null);
   const [selectedImageKey, setSelectedImageKey] = useState('noodles');
@@ -48,7 +56,7 @@ export function ProductManagement() {
         harga: '' as any, // Empty string untuk input kosong
         stok: '' as any, // Empty string untuk input kosong
         gambar: 'noodles',
-        kategori: categories[0] || 'Makanan & Minuman' // Use first category from list
+        kategori: categories[0] || ''
       });
     }
     setIsFormOpen(true);
@@ -59,21 +67,21 @@ export function ProductManagement() {
     setEditingProduct(null);
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
     if (editingProduct) {
-      updateProduct({ ...formData, id_barang: editingProduct.id_barang });
+      await updateProduct({ ...formData, id_barang: editingProduct.id_barang });
     } else {
-      addProduct(formData);
+      await addProduct(formData);
     }
     
     closeForm();
   };
 
-  const handleDelete = (id: number) => {
+  const handleDelete = async (id: number) => {
     if (confirm('Apakah Anda yakin ingin menghapus produk ini?')) {
-      deleteProduct(id);
+      await deleteProduct(id);
     }
   };
 
@@ -110,6 +118,24 @@ export function ProductManagement() {
             Tambah Produk
           </button>
         </div>
+        {isProductsLoading && (
+          <p className="mt-2 text-xs text-gray-500">Memuat produk dari Firebase...</p>
+        )}
+        {!isProductsLoading && productsError && (
+          <div className="mt-3 flex items-center justify-between rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-700">
+            <span>Gagal sync produk: {productsError}</span>
+            <button
+              onClick={clearProductsError}
+              type="button"
+              className="text-red-700 underline underline-offset-2"
+            >
+              Tutup
+            </button>
+          </div>
+        )}
+        {!isCategoriesLoading && categoriesError && (
+          <p className="mt-2 text-xs text-red-600">Kategori tidak tersedia: {categoriesError}</p>
+        )}
       </div>
 
       {/* Products Table */}
@@ -163,7 +189,7 @@ export function ProductManagement() {
                       <Pencil className="w-4 h-4" />
                     </button>
                     <button
-                      onClick={() => handleDelete(product.id_barang)}
+                    onClick={() => void handleDelete(product.id_barang)}
                       className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
                       title="Hapus"
                     >
@@ -224,11 +250,16 @@ export function ProductManagement() {
                   <select
                     value={formData.kategori}
                     onChange={(e) => setFormData({ ...formData, kategori: e.target.value })}
+                    disabled={isCategoriesLoading || categories.length === 0}
                     className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500"
                   >
-                    {categories.map((cat) => (
-                      <option key={cat} value={cat}>{cat}</option>
-                    ))}
+                    {categories.length === 0 ? (
+                      <option value="">Kategori belum tersedia</option>
+                    ) : (
+                      categories.map((cat) => (
+                        <option key={cat} value={cat}>{cat}</option>
+                      ))
+                    )}
                   </select>
                 </div>
 
